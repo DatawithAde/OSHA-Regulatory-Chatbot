@@ -7,38 +7,41 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-from ingestion.fetch_ecfr import fetch_full_text_xml
+from ingestion.fetch_ecfr import fetch_all_parts, OSHA_PARTS
 from ingestion.parse_cfr import parse_ecfr_xml
 from ingestion.chunk_documents import build_documents
 from vectorstore.build_index import build_vectorstore, load_vectorstore
 from rag.chain import build_rag_chain, query_osha
 
-XML_PATH = "data/raw/cfr_29_part1910.xml"
-FAISS_DIR = "data/faiss_osha_1910"
+FAISS_DIR = "data/faiss_osha_all"
 
 def run_ingestion_pipeline():
     print("=" * 60)
-    print("OSHA 29 CFR 1910 INGESTION PIPELINE")
+    print("FULL OSHA CFR INGESTION PIPELINE")
     print("=" * 60)
 
-    if not Path(XML_PATH).exists():
-        print("\n[1/4] Fetching 29 CFR Part 1910 from eCFR...")
-        fetch_full_text_xml()
-    else:
-        print(f"\n[1/4] Using cached XML: {XML_PATH}")
+    # Step 1: Fetch all parts
+    print("\n[1/4] Fetching all OSHA CFR parts from eCFR...")
+    parts = fetch_all_parts()
 
-    print("\n[2/4] Parsing XML into sections...")
-    sections = parse_ecfr_xml(XML_PATH)
-    print(f"  -> {len(sections)} sections parsed")
+    # Step 2: Parse all parts
+    print("\n[2/4] Parsing all parts...")
+    all_sections = []
+    for p in parts:
+        sections = parse_ecfr_xml(str(p["path"]))
+        print(f"  Part {p['part']}: {len(sections)} sections")
+        all_sections.extend(sections)
+    print(f"  TOTAL: {len(all_sections)} sections across all parts")
 
-    print("\n[3/4] Chunking sections...")
-    documents = build_documents(sections)
-    print(f"  -> {len(documents)} chunks created")
+    # Step 3: Chunk all sections
+    print("\n[3/4] Chunking all sections...")
+    documents = build_documents(all_sections)
+    print(f"  TOTAL: {len(documents)} chunks created")
 
+    # Step 4: Embed and store
     print("\n[4/4] Embedding and storing in FAISS...")
     vectorstore = build_vectorstore(documents)
-
-    print("\nPipeline complete! Vector store ready.")
+    print("\nPipeline complete! Full OSHA vector store ready.")
     return vectorstore
 
 def run_chatbot(vectorstore=None):
@@ -48,13 +51,16 @@ def run_chatbot(vectorstore=None):
     chain = build_rag_chain(vectorstore)
 
     print("\n" + "=" * 60)
-    print("OSHA REGULATORY CHATBOT - 29 CFR Part 1910")
+    print("FULL OSHA REGULATORY CHATBOT")
+    print("Covers: 29 CFR Parts 1903, 1904, 1910, 1915, 1926")
     print("Type 'exit' to quit | 'clear' to reset conversation")
     print("=" * 60)
     print("\nExample questions:")
     print("  1. What are the PPE requirements for eye protection?")
     print("  2. When is lockout/tagout required?")
-    print("  3. What training is required for forklift operators?")
+    print("  3. What are the fall protection requirements in construction?")
+    print("  4. How do I record a workplace injury on the OSHA 300 log?")
+    print("  5. What are the scaffolding requirements for construction?")
     print()
 
     while True:
@@ -69,7 +75,6 @@ def run_chatbot(vectorstore=None):
         if user_input.lower() == 'exit':
             break
         if user_input.lower() == 'clear':
-            chain.memory.clear()
             print("Conversation cleared.\n")
             continue
 

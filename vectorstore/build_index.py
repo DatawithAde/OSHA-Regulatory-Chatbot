@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-FAISS_DIR = "./data/faiss_osha_1910"
+FAISS_DIR = "./data/faiss_osha_all"
 
 def get_embeddings():
     print("Using OpenAI text-embedding-3-small")

@@ -8,7 +8,7 @@ class CFRSection:
     section_title: str
     subpart: str
     subpart_title: str
-    part: str = "1910"
+    part: str = "29"
     text: str = ""
     paragraphs: list = field(default_factory=list)
 
@@ -24,7 +24,7 @@ class CFRSection:
             "subpart": self.subpart,
             "subpart_title": self.subpart_title,
             "citation": self.citation,
-            "source": "29 CFR 1910",
+            "source": "29 CFR",
             "part": self.part,
         }
 
@@ -47,10 +47,6 @@ def parse_ecfr_xml(xml_path):
     sections = []
     current_subpart = "General"
     current_subpart_title = ""
-
-    # eCFR uses DIV-based hierarchy:
-    # DIV5 = Part, DIV6 = Subpart, DIV7 = Section, DIV8 = Paragraph group
-    # Each DIV has a TYPE attribute like TYPE="SECTION" or TYPE="SUBPART"
 
     for elem in root.iter():
         tag = strip_ns(elem.tag)
@@ -77,8 +73,7 @@ def parse_ecfr_xml(xml_path):
                 head = elem.find('HEAD')
                 if head is not None:
                     head_text = get_all_text(head)
-                    # Format: "§ 1910.132   General requirements."
-                    match = re.match(r'[§\s]*(1910\.\d+\w*)\s*(.*)', head_text)
+                    match = re.match(r'[§\s]*(\d+\.\d+\w*)\s*(.*)', head_text)
                     if match:
                         section_number = match.group(1).strip()
                         section_title = match.group(2).strip().rstrip('.')
@@ -86,7 +81,6 @@ def parse_ecfr_xml(xml_path):
                 if not section_number:
                     continue
 
-                # Collect all paragraph text
                 for child in elem.iter():
                     child_tag = strip_ns(child.tag)
                     if child_tag in ('P', 'FP', 'FP-1', 'FP-2'):
@@ -95,7 +89,6 @@ def parse_ecfr_xml(xml_path):
                             paragraphs.append(para)
 
                 full_text = f"§ {section_number} - {section_title}\n\n" + '\n\n'.join(paragraphs)
-
                 sections.append(CFRSection(
                     section_number=section_number,
                     section_title=section_title,
@@ -105,14 +98,13 @@ def parse_ecfr_xml(xml_path):
                     paragraphs=paragraphs,
                 ))
 
-    # Fallback: try DIV6/DIV7/DIV8 with N attribute
     if len(sections) == 0:
         print("  Trying N-attribute fallback...")
         for elem in root.iter():
             tag = strip_ns(elem.tag)
             if tag in ('DIV6', 'DIV7', 'DIV8'):
                 n_val = elem.get('N', '')
-                if re.match(r'1910\.\d+', n_val):
+                if re.match(r'\d+\.\d+', n_val):
                     head = elem.find('HEAD')
                     section_title = get_all_text(head).rstrip('.') if head is not None else ""
                     paragraphs = []
