@@ -1,0 +1,6 @@
+.env
+venv/
+data/raw/
+data/faiss_osha_1910/
+__pycache__/
+*.pyc
