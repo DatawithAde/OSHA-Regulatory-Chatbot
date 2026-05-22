@@ -27,6 +27,9 @@ AI-powered chatbot for OSHA compliance questions, grounded in actual federal reg
 - **eCFR API** — Live federal regulatory data source
 
 ## Architecture
+eCFR API → XML Parser → Regulatory Chunker → FAISS Vector Store
+                                                      ↓
+                    User Query → Semantic Retrieval → GPT-4o → Cited Answer
 
 ## Setup
 1. Clone the repo
