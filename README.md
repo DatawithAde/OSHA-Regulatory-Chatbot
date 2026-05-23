@@ -39,4 +39,4 @@ eCFR API → XML Parser → Regulatory Chunker → FAISS Vector Store
 5. `streamlit run app/streamlit_app.py` for web UI
 
 ## Author
-Adeyemi Samuel Ayorinde — Information Systems Analytics, University of Arkansas at Little Rock
+Adeyemi Samuel Ayorinde — EHS Data Scientists, University of Arkansas at Little Rock
